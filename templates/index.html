@@ -53,6 +53,13 @@
               <span>×</span>
               <input type="number" id="sig-height" value="80" min="30" max="200" step="5">
             </div>
+            <p class="muted small" id="placement-hint">Create or upload a signature, then drag it onto the PDF.</p>
+            <div class="drag-signature-wrap hidden" id="drag-signature-wrap">
+              <span class="drag-label">Drag to PDF →</span>
+              <div class="draggable-signature" id="draggable-signature" draggable="true" title="Drag onto the PDF to place">
+                <img id="draggable-signature-img" alt="Your signature" />
+              </div>
+            </div>
             <button type="button" class="btn primary" id="apply-signature">Apply signature &amp; download</button>
           </div>
         </section>
@@ -80,13 +87,6 @@
             <div class="placement-marker hidden" id="placement-marker">
               <img id="placement-marker-img" alt="" />
               <span class="placement-resize-handle" id="placement-resize-handle" title="Drag to resize"></span>
-            </div>
-          </div>
-          <p class="muted small" id="placement-hint">Create or upload a signature, then drag it onto the PDF.</p>
-          <div class="drag-signature-wrap hidden" id="drag-signature-wrap">
-            <span class="drag-label">Drag to PDF →</span>
-            <div class="draggable-signature" id="draggable-signature" draggable="true" title="Drag onto the PDF to place">
-              <img id="draggable-signature-img" alt="Your signature" />
             </div>
           </div>
         </div>

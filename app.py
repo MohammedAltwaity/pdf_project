@@ -166,11 +166,10 @@ def sign_pdf():
     overlay_reader = PdfReader(io.BytesIO(overlay_pdf_bytes))
     stamp_page = overlay_reader.pages[0]
 
+    # Build output in writer context so merge preserves original page content (avoids white page)
     writer = PdfWriter()
-    for i, p in enumerate(reader.pages):
-        if i == page_index:
-            p.merge_page(stamp_page, over=True)
-        writer.add_page(p)
+    writer.append_pages_from_reader(reader)
+    writer.pages[page_index].merge_page(stamp_page, over=True)
 
     out = io.BytesIO()
     writer.write(out)

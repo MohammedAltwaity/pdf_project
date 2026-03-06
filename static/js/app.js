@@ -74,6 +74,18 @@
     return { left: left, top: top, right: right + 1, bottom: bottom + 1 };
   }
 
+  /** Make white/near-white pixels transparent so image matches drawn signature (no white block). */
+  function makeWhitesTransparent(ctx, width, height) {
+    var imageData = ctx.getImageData(0, 0, width, height);
+    var data = imageData.data;
+    var threshold = 250;
+    for (var i = 0; i < data.length; i += 4) {
+      if (data[i] >= threshold && data[i + 1] >= threshold && data[i + 2] >= threshold)
+        data[i + 3] = 0;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
   function trimSignatureFromCanvas() {
     var ctx2 = signatureCanvas.getContext("2d");
     var imageData = ctx2.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
@@ -109,6 +121,7 @@
       trimCanvas.height = ch;
       var tctx = trimCanvas.getContext("2d");
       tctx.drawImage(img, bbox.left, bbox.top, cw, ch, 0, 0, cw, ch);
+      makeWhitesTransparent(tctx, cw, ch);
       done({ dataUrl: trimCanvas.toDataURL("image/png"), width: cw, height: ch });
     };
     img.onerror = function () { done(null); };
