@@ -10,7 +10,8 @@
   const pdfInput = document.getElementById("pdf-input");
   const afterUpload = document.getElementById("after-upload");
   const fileInfo = document.getElementById("file-info");
-  const pageSelect = document.getElementById("page-select");
+  const pageNumberInput = document.getElementById("page-number");
+  const pageOfSpan = document.getElementById("page-of");
   const signatureCanvas = document.getElementById("signature-canvas");
   const clearSignatureBtn = document.getElementById("clear-signature");
   const tabBtns = document.querySelectorAll(".tab-btn");
@@ -203,13 +204,12 @@
         state.pageSizes = data.page_sizes || [];
         state.placement = null;
         fileInfo.textContent = `${file.name} (${data.num_pages} page${data.num_pages !== 1 ? "s" : ""})`;
-        pageSelect.innerHTML = "";
-        for (let i = 0; i < data.num_pages; i++) {
-          const opt = document.createElement("option");
-          opt.value = i;
-          opt.textContent = `Page ${i + 1}`;
-          pageSelect.appendChild(opt);
+        if (pageNumberInput) {
+          pageNumberInput.min = 1;
+          pageNumberInput.max = data.num_pages;
+          pageNumberInput.value = 1;
         }
+        if (pageOfSpan) pageOfSpan.textContent = "of " + data.num_pages + " pages";
         afterUpload.classList.remove("hidden");
         workspacePlaceholder.classList.add("hidden");
         pdfPreview.classList.remove("hidden");
@@ -224,8 +224,16 @@
       });
   }
 
+  function getPageIndex() {
+    var n = parseInt(pageNumberInput ? pageNumberInput.value : "1", 10);
+    if (isNaN(n) || n < 1) n = 1;
+    var max = state.numPages || 1;
+    if (n > max) n = max;
+    return n - 1;
+  }
+
   function getPageSize() {
-    const i = parseInt(pageSelect.value, 10);
+    var i = getPageIndex();
     if (!state.pageSizes || !state.pageSizes[i]) return null;
     return state.pageSizes[i];
   }
@@ -430,7 +438,7 @@
 
   if (pdfPrevBtn) pdfPrevBtn.addEventListener("click", function () {
     var i = Math.max(0, state.currentPageIndex - 1);
-    pageSelect.value = i;
+    if (pageNumberInput) pageNumberInput.value = i + 1;
     state.placement = null;
     placementMarker.classList.add("hidden");
     renderPdfPage(i);
@@ -438,17 +446,21 @@
   });
   if (pdfNextBtn) pdfNextBtn.addEventListener("click", function () {
     var i = Math.min(state.numPages - 1, state.currentPageIndex + 1);
-    pageSelect.value = i;
+    if (pageNumberInput) pageNumberInput.value = i + 1;
     state.placement = null;
     placementMarker.classList.add("hidden");
     renderPdfPage(i);
     updatePlacementHint();
   });
 
-  pageSelect.addEventListener("change", function () {
+  if (pageNumberInput) pageNumberInput.addEventListener("change", function () {
+    var n = parseInt(pageNumberInput.value, 10);
+    var max = state.numPages || 1;
+    if (isNaN(n) || n < 1) { pageNumberInput.value = 1; n = 1; }
+    else if (n > max) { pageNumberInput.value = max; n = max; }
     state.placement = null;
     placementMarker.classList.add("hidden");
-    if (state.fileId) renderPdfPage(pageSelect.value);
+    if (state.fileId) renderPdfPage(n - 1);
     updatePlacementHint();
   });
   sigWidth.addEventListener("input", updateMarkerPosition);
@@ -620,7 +632,7 @@
 
     const fd = new FormData();
     fd.append("file_id", state.fileId);
-    fd.append("page", pageSelect.value);
+    fd.append("page", String(getPageIndex()));
     fd.append("x", state.placement ? String(Math.round(state.placement.x)) : "100");
     fd.append("y", state.placement ? String(Math.round(state.placement.y)) : "100");
     fd.append("width", sigWidth.value);

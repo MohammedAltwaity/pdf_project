@@ -29,7 +29,8 @@
           <div class="form-group hidden" id="after-upload">
             <p class="file-info" id="file-info"></p>
             <label>Page to sign</label>
-            <select id="page-select"></select>
+            <input type="number" id="page-number" min="1" value="1" step="1" placeholder="e.g. 1" inputmode="numeric" pattern="[0-9]*">
+            <span class="page-of" id="page-of">of — pages</span>
             <label>Signature</label>
             <div class="signature-tabs">
               <button type="button" class="tab-btn active" data-mode="draw">Draw</button>

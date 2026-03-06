@@ -162,14 +162,21 @@ body {
 }
 
 /* Select */
-select {
-  width: 100%;
+#page-number {
+  width: 4.5rem;
+  min-width: 3ch;
   padding: 0.5rem;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
   font-size: 0.9rem;
+}
+
+.page-of {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* Tabs */
