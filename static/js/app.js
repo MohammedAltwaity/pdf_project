@@ -45,6 +45,19 @@
   const pdfPrevBtn = document.getElementById("pdf-prev");
   const pdfNextBtn = document.getElementById("pdf-next");
 
+  const mergeUploadZone = document.getElementById("merge-upload-zone");
+  const mergePdfInput = document.getElementById("merge-pdf-input");
+  const mergeFileList = document.getElementById("merge-file-list");
+  const mergeDownloadBtn = document.getElementById("merge-download-btn");
+  const mergePreview = document.getElementById("merge-preview");
+  const mergePreviewThumbnails = document.getElementById("merge-preview-thumbnails");
+  const mergeResultPreview = document.getElementById("merge-result-preview");
+  const mergeResultCanvas = document.getElementById("merge-result-canvas");
+  const mergeResultPrev = document.getElementById("merge-result-prev");
+  const mergeResultNext = document.getElementById("merge-result-next");
+  const mergeResultPageInfo = document.getElementById("merge-result-page-info");
+  const mergeResultDownload = document.getElementById("merge-result-download");
+
   let state = {
     fileId: null,
     numPages: 0,
@@ -57,6 +70,12 @@
     pdfScale: 1,
     displayScale: 1,
     currentPageIndex: 0,
+    mergeFiles: [],
+    mergedPdfUrl: null,
+    mergedPdfBlob: null,
+    mergedPdfDoc: null,
+    mergedPdfNumPages: 0,
+    mergedPdfPageIndex: 0,
   };
 
   function getContentBbox(imageData, w, h) {
@@ -515,6 +534,28 @@
     panels.forEach((p) => p.classList.add("hidden"));
     const panel = document.getElementById("panel-" + tool);
     if (panel) panel.classList.remove("hidden");
+    if (workspacePlaceholder) workspacePlaceholder.classList.add("hidden");
+    if (pdfPreview) pdfPreview.classList.add("hidden");
+    if (mergePreview) mergePreview.classList.add("hidden");
+    if (tool === "merge") {
+      if (state.mergedPdfDoc && mergeResultPreview) {
+        mergeResultPreview.classList.remove("hidden");
+        if (mergePreview) mergePreview.classList.add("hidden");
+        renderMergedPdfPage(state.mergedPdfPageIndex);
+      } else {
+        if (mergeResultPreview) mergeResultPreview.classList.add("hidden");
+        if (mergePreview) mergePreview.classList.remove("hidden");
+        updateMergePreview();
+      }
+    } else if (tool === "sign") {
+      if (state.fileId) {
+        if (pdfPreview) pdfPreview.classList.remove("hidden");
+      } else {
+        if (workspacePlaceholder) workspacePlaceholder.classList.remove("hidden");
+      }
+    } else {
+      if (workspacePlaceholder) workspacePlaceholder.classList.remove("hidden");
+    }
   }
 
   function applyViewFromHash() {
@@ -584,6 +625,227 @@
       if (tool) navigateToTool(tool);
     });
   });
+
+  // ----- Merge PDF -----
+  function clearMergedResult() {
+    if (state.mergedPdfUrl) {
+      URL.revokeObjectURL(state.mergedPdfUrl);
+      state.mergedPdfUrl = null;
+    }
+    state.mergedPdfBlob = null;
+    state.mergedPdfDoc = null;
+    state.mergedPdfNumPages = 0;
+    state.mergedPdfPageIndex = 0;
+    if (mergeResultPreview) mergeResultPreview.classList.add("hidden");
+    if (mergePreview) mergePreview.classList.remove("hidden");
+  }
+
+  function renderMergedPdfPage(idx) {
+    if (!state.mergedPdfDoc || !mergeResultCanvas || typeof pdfjsLib === "undefined") return;
+    state.mergedPdfPageIndex = idx;
+    if (mergeResultPageInfo) mergeResultPageInfo.textContent = "Page " + (idx + 1) + " of " + state.mergedPdfNumPages;
+    if (mergeResultPrev) mergeResultPrev.disabled = idx <= 0;
+    if (mergeResultNext) mergeResultNext.disabled = idx >= state.mergedPdfNumPages - 1;
+    state.mergedPdfDoc.getPage(idx + 1).then(function (page) {
+      var wrap = mergeResultCanvas.parentElement;
+      var wrapW = wrap ? wrap.clientWidth : 600;
+      var wrapH = wrap ? wrap.clientHeight : 500;
+      var baseScale = Math.min(wrapW / page.getViewport({ scale: 1 }).width, wrapH / page.getViewport({ scale: 1 }).height);
+      var pixelRatio = Math.max(1.5, window.devicePixelRatio || 1);
+      var renderScale = baseScale * pixelRatio;
+      var viewport = page.getViewport({ scale: renderScale });
+      mergeResultCanvas.width = viewport.width;
+      mergeResultCanvas.height = viewport.height;
+      var ctx = mergeResultCanvas.getContext("2d");
+      return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    }).catch(function (err) { console.error("Merge preview render failed", err); });
+  }
+
+  function showMergedResult(blob) {
+    if (state.mergedPdfUrl) URL.revokeObjectURL(state.mergedPdfUrl);
+    state.mergedPdfBlob = blob;
+    state.mergedPdfUrl = URL.createObjectURL(blob);
+    state.mergedPdfDoc = null;
+    state.mergedPdfNumPages = 0;
+    state.mergedPdfPageIndex = 0;
+    if (mergePreview) mergePreview.classList.add("hidden");
+    if (mergeResultPreview) mergeResultPreview.classList.remove("hidden");
+    if (typeof pdfjsLib === "undefined") return;
+    pdfjsLib.getDocument(state.mergedPdfUrl).promise.then(function (pdf) {
+      state.mergedPdfDoc = pdf;
+      state.mergedPdfNumPages = pdf.numPages;
+      renderMergedPdfPage(0);
+    }).catch(function (err) {
+      console.error("Failed to load merged PDF for preview", err);
+      if (mergeResultPageInfo) mergeResultPageInfo.textContent = "Preview unavailable";
+    });
+  }
+
+  function addMergeFiles(files) {
+    if (!files || !files.length) return;
+    clearMergedResult();
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].type === "application/pdf") state.mergeFiles.push(files[i]);
+    }
+    renderMergeList();
+    updateMergeButton();
+    updateMergePreview();
+  }
+
+  function removeMergeFile(index) {
+    state.mergeFiles.splice(index, 1);
+    renderMergeList();
+    updateMergeButton();
+    updateMergePreview();
+    clearMergedResult();
+  }
+
+  function renderMergeList() {
+    if (!mergeFileList) return;
+    mergeFileList.innerHTML = "";
+    state.mergeFiles.forEach(function (file, index) {
+      var li = document.createElement("li");
+      var name = document.createElement("span");
+      name.textContent = file.name || "PDF " + (index + 1);
+      name.title = file.name || "";
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "merge-file-remove";
+      btn.textContent = "Remove";
+      btn.setAttribute("data-merge-index", String(index));
+      li.appendChild(name);
+      li.appendChild(btn);
+      mergeFileList.appendChild(li);
+    });
+  }
+
+  function updateMergeButton() {
+    if (mergeDownloadBtn) mergeDownloadBtn.disabled = state.mergeFiles.length < 2;
+  }
+
+  function updateMergePreview() {
+    if (!mergePreviewThumbnails || typeof pdfjsLib === "undefined") return;
+    mergePreviewThumbnails.innerHTML = "";
+    state.mergeFiles.forEach(function (file, index) {
+      var wrap = document.createElement("div");
+      wrap.className = "merge-preview-thumb";
+      var canvas = document.createElement("canvas");
+      var label = document.createElement("span");
+      label.textContent = (index + 1) + ". " + (file.name || "PDF");
+      wrap.appendChild(canvas);
+      wrap.appendChild(label);
+      mergePreviewThumbnails.appendChild(wrap);
+      file.arrayBuffer().then(function (ab) {
+        return pdfjsLib.getDocument(ab).promise;
+      }).then(function (pdf) {
+        return pdf.getPage(1);
+      }).then(function (page) {
+        var scale = Math.min(200 / page.getViewport({ scale: 1 }).width, 260 / page.getViewport({ scale: 1 }).height, 1.5);
+        var viewport = page.getViewport({ scale: scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        var ctx = canvas.getContext("2d");
+        return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+      }).catch(function () {
+        label.textContent = (index + 1) + ". " + (file.name || "PDF") + " (preview failed)";
+      });
+    });
+  }
+
+  if (mergeUploadZone) {
+    mergeUploadZone.addEventListener("click", function () {
+      if (mergePdfInput) mergePdfInput.click();
+    });
+    mergeUploadZone.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      mergeUploadZone.classList.add("dragover");
+    });
+    mergeUploadZone.addEventListener("dragleave", function () {
+      mergeUploadZone.classList.remove("dragover");
+    });
+    mergeUploadZone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      mergeUploadZone.classList.remove("dragover");
+      addMergeFiles(e.dataTransfer.files);
+    });
+  }
+  if (mergePdfInput) {
+    mergePdfInput.addEventListener("change", function () {
+      addMergeFiles(mergePdfInput.files);
+      mergePdfInput.value = "";
+    });
+  }
+  if (mergeFileList) {
+    mergeFileList.addEventListener("click", function (e) {
+      var btn = e.target.closest(".merge-file-remove");
+      if (btn) {
+        var index = parseInt(btn.getAttribute("data-merge-index"), 10);
+        if (!isNaN(index)) removeMergeFile(index);
+      }
+    });
+  }
+  if (mergeDownloadBtn) {
+    mergeDownloadBtn.addEventListener("click", function () {
+      if (state.mergeFiles.length < 2) return;
+      mergeDownloadBtn.disabled = true;
+      mergeDownloadBtn.textContent = "Merging…";
+      var fd = new FormData();
+      state.mergeFiles.forEach(function (file) {
+        fd.append("pdfs", file);
+      });
+      fetch("/api/merge-pdf", { method: "POST", body: fd })
+        .then(function (r) {
+          if (!r.ok) {
+            return r.text().then(function (text) {
+              var msg = "Merge failed";
+              try {
+                var data = JSON.parse(text);
+                if (data && data.error) msg = data.error;
+              } catch (e) { if (text) msg = text.slice(0, 200); }
+              throw new Error(msg);
+            });
+          }
+          return r.blob();
+        })
+        .then(function (blob) {
+          showMergedResult(blob);
+        })
+        .catch(function (err) {
+          alert(err.message || "Failed to merge PDFs");
+        })
+        .finally(function () {
+          mergeDownloadBtn.disabled = state.mergeFiles.length < 2;
+          mergeDownloadBtn.textContent = "Merge & download";
+        });
+    });
+  }
+  if (mergeResultPrev) {
+    mergeResultPrev.addEventListener("click", function () {
+      if (state.mergedPdfPageIndex > 0) renderMergedPdfPage(state.mergedPdfPageIndex - 1);
+    });
+  }
+  if (mergeResultNext) {
+    mergeResultNext.addEventListener("click", function () {
+      if (state.mergedPdfPageIndex < state.mergedPdfNumPages - 1) renderMergedPdfPage(state.mergedPdfPageIndex + 1);
+    });
+  }
+  if (mergeResultDownload) {
+    mergeResultDownload.addEventListener("click", function () {
+      if (!state.mergedPdfBlob) return;
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(state.mergedPdfBlob);
+      a.download = "merged.pdf";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      }, 100);
+    });
+  }
 
   // ----- Navigation (sidebar tool panels, when using nav buttons) -----
   navBtns.forEach((btn) => {

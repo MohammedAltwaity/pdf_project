@@ -325,6 +325,176 @@ body {
   display: none;
 }
 
+/* Merge PDF panel */
+.merge-upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.merge-upload-zone:hover,
+.merge-upload-zone.dragover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.merge-upload-zone .upload-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.merge-upload-zone p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.merge-file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.merge-file-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.merge-file-list li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merge-file-list .merge-file-remove {
+  flex-shrink: 0;
+  padding: 0.2rem 0.4rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.merge-file-list .merge-file-remove:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+/* Merge preview (workspace when Merge tool is active) */
+.merge-preview {
+  width: 100%;
+  max-width: 900px;
+  padding: 1rem;
+}
+
+.merge-preview.hidden {
+  display: none !important;
+}
+
+.merge-preview-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.merge-preview-thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.merge-preview-thumb {
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.merge-preview-thumb canvas {
+  display: block;
+  max-width: 200px;
+  max-height: 260px;
+  width: auto;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #525659;
+}
+
+.merge-preview-thumb span {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Merged PDF result preview */
+.merge-result-preview {
+  width: 100%;
+  max-width: 900px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.merge-result-preview.hidden {
+  display: none !important;
+}
+
+.merge-result-preview .merge-preview-title {
+  margin-bottom: 0.5rem;
+}
+
+.merge-result-page-bar {
+  margin: 0.5rem 0;
+}
+
+.merge-result-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #525659;
+  border-radius: var(--radius);
+  margin: 0.5rem 0;
+}
+
+#merge-result-canvas {
+  max-width: 100%;
+  max-height: 70vh;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.merge-result-preview .btn.primary {
+  margin-top: 1rem;
+  width: auto;
+  min-width: 200px;
+}
+
 /* Upload zone */
 .upload-zone,
 .upload-signature-zone {

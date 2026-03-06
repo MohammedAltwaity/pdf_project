@@ -183,5 +183,30 @@ def sign_pdf():
     return send_file(out, mimetype="application/pdf", as_attachment=True, download_name="signed.pdf")
 
 
+@app.route("/api/merge-pdf", methods=["POST"])
+def merge_pdf():
+    """Merge multiple PDFs in the order they were uploaded. Expects form field 'pdfs' (multiple files)."""
+    files = request.files.getlist("pdfs")
+    if not files:
+        return jsonify({"error": "No PDF files provided"}), 400
+    pdfs = [f for f in files if f.filename and f.filename.lower().endswith(".pdf")]
+    if len(pdfs) < 2:
+        return jsonify({"error": "Please upload at least 2 PDF files to merge"}), 400
+
+    writer = PdfWriter()
+    try:
+        for f in pdfs:
+            buf = io.BytesIO(f.read())
+            reader = PdfReader(buf)
+            writer.append_pages_from_reader(reader)
+    except Exception as e:
+        return jsonify({"error": f"Invalid PDF or merge failed: {str(e)}"}), 400
+
+    out = io.BytesIO()
+    writer.write(out)
+    out.seek(0)
+    return send_file(out, mimetype="application/pdf", as_attachment=True, download_name="merged.pdf")
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

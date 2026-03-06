@@ -42,13 +42,12 @@
           <span class="tool-card-label">Compress PDF</span>
           <span class="tool-card-badge">Soon</span>
         </div>
-        <div class="tool-card tool-card-disabled" aria-disabled="true">
+        <a href="#" class="tool-card" data-tool="merge" role="listitem">
           <span class="tool-card-icon tool-card-icon-merge" aria-hidden="true">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 12h14v24H10zM24 12h14v24H24z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M20 20h8M20 24h8M20 28h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </span>
           <span class="tool-card-label">Merge PDF</span>
-          <span class="tool-card-badge">Soon</span>
-        </div>
+        </a>
         <div class="tool-card tool-card-disabled" aria-disabled="true">
           <span class="tool-card-icon tool-card-icon-split" aria-hidden="true">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10v28h12V10H8zM28 10v28h12V10H28z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
@@ -130,6 +129,17 @@
             <button type="button" class="btn primary" id="apply-signature">Apply signature &amp; download</button>
           </div>
         </section>
+        <section class="tool-panel hidden" id="panel-merge">
+          <h2>Merge PDF</h2>
+          <p class="muted small">Add two or more PDFs in the order you want. They will be combined into one file.</p>
+          <div class="merge-upload-zone" id="merge-upload-zone" role="button" tabindex="0">
+            <span class="upload-icon" aria-hidden="true">📄</span>
+            <p>Drop PDFs here or click to add files</p>
+            <input type="file" id="merge-pdf-input" accept=".pdf" multiple hidden>
+          </div>
+          <ul class="merge-file-list" id="merge-file-list" aria-label="PDFs to merge (order)"></ul>
+          <button type="button" class="btn primary" id="merge-download-btn" disabled>Merge &amp; download</button>
+        </section>
         <section class="tool-panel hidden" id="panel-compress">
           <h2>Compress PDF</h2>
           <p class="muted">Coming soon.</p>
@@ -142,6 +152,23 @@
       <div class="workspace">
         <div class="workspace-placeholder" id="workspace-placeholder">
           <p>Upload a PDF to get started</p>
+        </div>
+        <div class="merge-preview hidden" id="merge-preview">
+          <h3 class="merge-preview-title">Preview of documents to merge</h3>
+          <p class="muted small">First page of each PDF in order. Add files in the sidebar, then click Merge &amp; download.</p>
+          <div class="merge-preview-thumbnails" id="merge-preview-thumbnails"></div>
+        </div>
+        <div class="merge-result-preview hidden" id="merge-result-preview">
+          <h3 class="merge-preview-title">Merged PDF preview</h3>
+          <div class="pdf-page-bar merge-result-page-bar">
+            <button type="button" class="btn-page" id="merge-result-prev" aria-label="Previous page">‹ Prev</button>
+            <span class="pdf-page-info" id="merge-result-page-info">Page 1 of 1</span>
+            <button type="button" class="btn-page" id="merge-result-next" aria-label="Next page">Next ›</button>
+          </div>
+          <div class="merge-result-wrap">
+            <canvas id="merge-result-canvas" aria-label="Merged PDF page"></canvas>
+          </div>
+          <button type="button" class="btn primary" id="merge-result-download">Download merged.pdf</button>
         </div>
         <div class="pdf-preview hidden" id="pdf-preview">
           <div class="pdf-page-bar" id="pdf-page-bar">
@@ -170,7 +197,7 @@
         <nav class="footer-nav" aria-label="Footer links">
           <a href="#" class="footer-link" data-tool="sign">Sign PDF</a>
           <a href="#" class="footer-link">Compress</a>
-          <a href="#" class="footer-link">Merge</a>
+          <a href="#" class="footer-link" data-tool="merge">Merge</a>
           <a href="#" class="footer-link">Convert</a>
         </nav>
         <p class="footer-copy">&copy; PDF Platform. All processing is done in your browser and on our server; we don’t store your files.</p>
