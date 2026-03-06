@@ -34,6 +34,11 @@
   const draggableSignatureImg = document.getElementById("draggable-signature-img");
   const navBtns = document.querySelectorAll(".nav-btn");
   const panels = document.querySelectorAll(".tool-panel");
+  const landing = document.getElementById("landing");
+  const toolView = document.getElementById("tool-view");
+  const headerHome = document.getElementById("header-home");
+  const navHome = document.getElementById("nav-home");
+  const toolCards = document.querySelectorAll(".tool-card[data-tool]");
 
   const pdfPageBar = document.getElementById("pdf-page-bar");
   const pdfPageInfo = document.getElementById("pdf-page-info");
@@ -496,7 +501,91 @@
     handlePdfSelect(file);
   });
 
-  // ----- Navigation (scalable for more tools) -----
+  // ----- Landing ↔ Tool view (hash-based navigation so back button works) -----
+  function showLanding() {
+    if (landing) landing.classList.remove("hidden");
+    if (toolView) toolView.classList.add("hidden");
+    if (navHome) navHome.classList.add("hidden");
+  }
+
+  function showToolView(tool) {
+    if (landing) landing.classList.add("hidden");
+    if (toolView) toolView.classList.remove("hidden");
+    if (navHome) navHome.classList.remove("hidden");
+    panels.forEach((p) => p.classList.add("hidden"));
+    const panel = document.getElementById("panel-" + tool);
+    if (panel) panel.classList.remove("hidden");
+  }
+
+  function applyViewFromHash() {
+    var hash = (window.location.hash || "#").replace(/^#/, "") || "home";
+    if (hash === "home" || !hash) {
+      showLanding();
+    } else {
+      showToolView(hash);
+    }
+  }
+
+  function navigateToHome() {
+    showLanding();
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ view: "home" }, "", "#");
+    }
+  }
+
+  function navigateToTool(tool) {
+    showToolView(tool);
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ view: tool }, "", "#" + tool);
+    }
+  }
+
+  // Initial view from current URL; ensure home has a history entry so back from a tool stays in-app
+  (function initNav() {
+    var hash = (window.location.hash || "").replace(/^#/, "");
+    applyViewFromHash();
+    if (!hash && window.history && window.history.replaceState) {
+      window.history.replaceState({ view: "home" }, "", window.location.pathname + window.location.search + "#");
+    }
+  })();
+
+  // Browser back/forward
+  window.addEventListener("popstate", function () {
+    applyViewFromHash();
+  });
+
+  if (headerHome) {
+    headerHome.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigateToHome();
+    });
+  }
+  if (navHome) {
+    navHome.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigateToHome();
+    });
+  }
+  toolCards.forEach((card) => {
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      var tool = card.dataset.tool;
+      if (tool) navigateToTool(tool);
+    });
+  });
+  document.querySelectorAll(".footer-link[data-tool]").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      var tool = link.dataset.tool;
+      if (tool) navigateToTool(tool);
+    });
+  });
+
+  // ----- Navigation (sidebar tool panels, when using nav buttons) -----
   navBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const tool = btn.dataset.tool;

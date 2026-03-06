@@ -3,21 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Platform</title>
+  <title>PDF Platform – Sign, Compress &amp; Convert</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <div class="app">
-    <header class="header">
-      <h1 class="logo">PDF Platform</h1>
-      <nav class="main-nav" role="navigation" aria-label="Main tools">
-        <button type="button" class="nav-btn active" data-tool="sign" aria-pressed="true">Sign PDF</button>
-        <button type="button" class="nav-btn" data-tool="compress" disabled aria-label="Coming soon">Compress</button>
-        <button type="button" class="nav-btn" data-tool="convert" disabled aria-label="Coming soon">Convert</button>
+    <header class="site-header">
+      <a href="#" class="header-brand" id="header-home" aria-label="Home" data-nav="home">
+        <span class="logo-mark">PDF</span>
+        <span class="logo-text">PDF Platform</span>
+      </a>
+      <p class="header-tagline">Sign, compress, merge &amp; convert — free online tools</p>
+      <nav class="header-nav" aria-label="Main navigation">
+        <a href="#" class="header-link header-link-home hidden" id="nav-home" data-nav="home">← Home</a>
       </nav>
     </header>
 
-    <main class="main">
+    <!-- Landing: tool grid (shown by default) -->
+    <section class="landing" id="landing">
+      <div class="hero">
+        <h1 class="hero-title">Your PDF tools in one place</h1>
+        <p class="hero-subtitle">Choose a tool below to get started. No sign-up required.</p>
+      </div>
+      <div class="tools-grid" role="list">
+        <a href="#" class="tool-card" data-tool="sign" role="listitem">
+          <span class="tool-card-icon tool-card-icon-sign" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 38h32M12 18l6 6 12-12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 30c0-4 2-8 6-10 2-1 4-1 6 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <span class="tool-card-label">Sign PDF</span>
+        </a>
+        <div class="tool-card tool-card-disabled" role="listitem" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-compress" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 20h20v8H14zM18 14h12v4H18zM18 30h12v4H18z" fill="currentColor"/><path d="M12 8v32h24V8H12z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          </span>
+          <span class="tool-card-label">Compress PDF</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-merge" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 12h14v24H10zM24 12h14v24H24z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M20 20h8M20 24h8M20 28h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <span class="tool-card-label">Merge PDF</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-split" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10v28h12V10H8zM28 10v28h12V10H28z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          </span>
+          <span class="tool-card-label">Split PDF</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-word" aria-hidden="true">W</span>
+          <span class="tool-card-label">PDF to Word</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-word" aria-hidden="true">W</span>
+          <span class="tool-card-label">Word to PDF</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-image" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="16" r="4" fill="currentColor"/><path d="M8 32l10-10 6 6 14-14 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="tool-card-label">PDF to JPG</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+        <div class="tool-card tool-card-disabled" aria-disabled="true">
+          <span class="tool-card-icon tool-card-icon-image" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="32" height="32" rx="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="16" r="4" fill="currentColor"/></svg>
+          </span>
+          <span class="tool-card-label">JPG to PDF</span>
+          <span class="tool-card-badge">Soon</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tool view: sidebar + workspace (hidden until a tool is chosen) -->
+    <main class="main tool-view hidden" id="tool-view">
       <aside class="sidebar">
         <section class="tool-panel" id="panel-sign">
           <h2>Sign PDF</h2>
@@ -92,6 +159,23 @@
         </div>
       </div>
     </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="logo-mark">PDF</span>
+          <span class="logo-text">PDF Platform</span>
+        </div>
+        <p class="footer-tagline">Free online PDF tools — sign, compress, merge and convert. No account needed.</p>
+        <nav class="footer-nav" aria-label="Footer links">
+          <a href="#" class="footer-link" data-tool="sign">Sign PDF</a>
+          <a href="#" class="footer-link">Compress</a>
+          <a href="#" class="footer-link">Merge</a>
+          <a href="#" class="footer-link">Convert</a>
+        </nav>
+        <p class="footer-copy">&copy; PDF Platform. All processing is done in your browser and on our server; we don’t store your files.</p>
+      </div>
+    </footer>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>
