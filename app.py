@@ -13,6 +13,56 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from PIL import Image
 
+
+def _trim_signature_margin(img: Image.Image) -> Image.Image:
+    """Crop image to the bounding box of non-white / non-transparent content so margin does not hide PDF text."""
+    if img.mode == "RGBA":
+        # Bbox of pixels where alpha > threshold
+        alpha = img.split()[-1]
+        bbox = alpha.getbbox()
+    else:
+        img_rgb = img.convert("RGB")
+        # Bbox of pixels that are not near-white (signature strokes)
+        data = list(img_rgb.getdata())
+        w, h = img.size
+        non_white = [
+            (i % w, i // w)
+            for i, p in enumerate(data)
+            if (p[0], p[1], p[2]) < (250, 250, 250)
+        ]
+        if not non_white:
+            return img
+        xs = [a for a, _ in non_white]
+        ys = [b for _, b in non_white]
+        bbox = (min(xs), min(ys), max(xs) + 1, max(ys) + 1)
+    if bbox is None:
+        return img
+    return img.crop(bbox)
+
+
+def _image_with_transparent_whites(img: Image.Image) -> Image.Image:
+    """Convert to RGBA and make white/near-white pixels transparent so PDF text shows through."""
+    if img.mode == "RGBA":
+        data = list(img.getdata())
+        new_data = [
+            (255, 255, 255, 0) if (r >= 250 and g >= 250 and b >= 250) else (r, g, b, a)
+            for (r, g, b, a) in data
+        ]
+        out = Image.new("RGBA", img.size)
+        out.putdata(new_data)
+        return out
+    img = img.convert("RGB")
+    img_rgba = Image.new("RGBA", img.size, (255, 255, 255, 0))
+    data_rgb = list(img.getdata())
+    w, h = img.size
+    new_data = [
+        (255, 255, 255, 0) if (p[0] >= 250 and p[1] >= 250 and p[2] >= 250) else (p[0], p[1], p[2], 255)
+        for p in data_rgb
+    ]
+    img_rgba.putdata(new_data)
+    return img_rgba
+
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 UPLOAD_DIR = Path(__file__).parent / "uploads"
@@ -20,13 +70,14 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 def _make_overlay_pdf(page_width: float, page_height: float, img_data: bytes, x: float, y: float, width: float, height: float) -> bytes:
-    """Create a single-page PDF with the signature image at (x,y). PDF coords: origin bottom-left."""
+    """Create a single-page PDF with the signature image at (x,y). PDF coords: origin bottom-left.
+    Image should be PNG with transparency so white margin does not block text underneath."""
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(page_width, page_height))
     # y from top in frontend -> PDF y from bottom
     y_pdf = page_height - y - height
     img = ImageReader(io.BytesIO(img_data))
-    c.drawImage(img, x, y_pdf, width=width, height=height)
+    c.drawImage(img, x, y_pdf, width=width, height=height, mask="auto")
     c.save()
     buf.seek(0)
     return buf.read()
@@ -91,16 +142,16 @@ def sign_pdf():
     if not img_data:
         return jsonify({"error": "No signature provided"}), 400
 
-    # Normalize image to RGB if needed (e.g. PNG with transparency -> white background)
+    # Load image, trim white margin, then make white/empty areas transparent so PDF text shows through
     img = Image.open(io.BytesIO(img_data))
-    if img.mode in ("RGBA", "P"):
-        background = Image.new("RGB", img.size, (255, 255, 255))
-        if img.mode == "P":
-            img = img.convert("RGBA")
-        background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
-        img = background
-    elif img.mode != "RGB":
+    if img.mode == "P":
+        img = img.convert("RGBA")
+    elif img.mode != "RGBA" and img.mode != "RGB":
         img = img.convert("RGB")
+    # Trim margin so we only draw the signature content
+    img = _trim_signature_margin(img)
+    # Make white/near-white pixels transparent so the blue box margin does not block text
+    img = _image_with_transparent_whites(img)
     img_byte_arr = io.BytesIO()
     img.save(img_byte_arr, format="PNG")
     img_byte_arr.seek(0)

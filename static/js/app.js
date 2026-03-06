@@ -45,12 +45,85 @@
     pageSizes: [],
     signatureMode: "draw",
     signatureImageData: null,
+    trimmedSignature: null,
     placement: null,
     pdfDoc: null,
     pdfScale: 1,
     displayScale: 1,
     currentPageIndex: 0,
   };
+
+  function getContentBbox(imageData, w, h) {
+    var data = imageData.data;
+    var left = w, top = h, right = 0, bottom = 0;
+    var whiteThreshold = 252;
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var i = (y * w + x) * 4;
+        var r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+        var visible = a > 15 || (r < whiteThreshold || g < whiteThreshold || b < whiteThreshold);
+        if (visible) {
+          if (x < left) left = x;
+          if (x > right) right = x;
+          if (y < top) top = y;
+          if (y > bottom) bottom = y;
+        }
+      }
+    }
+    if (left > right || top > bottom) return null;
+    return { left: left, top: top, right: right + 1, bottom: bottom + 1 };
+  }
+
+  function trimSignatureFromCanvas() {
+    var ctx2 = signatureCanvas.getContext("2d");
+    var imageData = ctx2.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
+    var bbox = getContentBbox(imageData, signatureCanvas.width, signatureCanvas.height);
+    if (!bbox) return null;
+    var cw = bbox.right - bbox.left;
+    var ch = bbox.bottom - bbox.top;
+    var trimCanvas = document.createElement("canvas");
+    trimCanvas.width = cw;
+    trimCanvas.height = ch;
+    var tctx = trimCanvas.getContext("2d");
+    tctx.drawImage(signatureCanvas, bbox.left, bbox.top, cw, ch, 0, 0, cw, ch);
+    return { dataUrl: trimCanvas.toDataURL("image/png"), width: cw, height: ch };
+  }
+
+  function trimSignatureFromImage(dataUrl, done) {
+    var img = new Image();
+    img.onload = function () {
+      var w = img.naturalWidth || img.width;
+      var h = img.naturalHeight || img.height;
+      var c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      var cx = c.getContext("2d");
+      cx.drawImage(img, 0, 0);
+      var imageData = cx.getImageData(0, 0, w, h);
+      var bbox = getContentBbox(imageData, w, h);
+      if (!bbox) { done(null); return; }
+      var cw = bbox.right - bbox.left;
+      var ch = bbox.bottom - bbox.top;
+      var trimCanvas = document.createElement("canvas");
+      trimCanvas.width = cw;
+      trimCanvas.height = ch;
+      var tctx = trimCanvas.getContext("2d");
+      tctx.drawImage(img, bbox.left, bbox.top, cw, ch, 0, 0, cw, ch);
+      done({ dataUrl: trimCanvas.toDataURL("image/png"), width: cw, height: ch });
+    };
+    img.onerror = function () { done(null); };
+    img.src = dataUrl;
+  }
+
+  function applyTrimmedSignature(trimmed) {
+    if (!trimmed) return;
+    state.trimmedSignature = trimmed;
+    sigWidth.value = Math.round(trimmed.width);
+    sigHeight.value = Math.round(trimmed.height);
+    updateDraggableSignature();
+    updatePlacementHint();
+    if (state.placement) updateMarkerPosition();
+  }
 
   // Parse JSON only when response is OK and content is JSON
   function parseJsonResponse(r) {
@@ -200,7 +273,7 @@
 
   // ----- Drag signature onto PDF -----
   function updateDraggableSignature() {
-    const data = getSignatureData();
+    var data = getSignatureData();
     if (!data) {
       dragSignatureWrap.classList.add("hidden");
       return;
@@ -384,10 +457,13 @@
     btn.addEventListener("click", () => {
       const mode = btn.dataset.mode;
       state.signatureMode = mode;
+      state.trimmedSignature = null;
       tabBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       panelDraw.classList.toggle("hidden", mode !== "draw");
       panelUpload.classList.toggle("hidden", mode !== "upload");
+      updateDraggableSignature();
+      if (state.placement) updateMarkerPosition();
     });
   });
 
@@ -430,8 +506,9 @@
   function endDraw(e) {
     e.preventDefault();
     drawing = false;
-    updatePlacementHint();
-    updateDraggableSignature();
+    var trimmed = trimSignatureFromCanvas();
+    if (trimmed) applyTrimmedSignature(trimmed);
+    else { updatePlacementHint(); updateDraggableSignature(); }
   }
 
   signatureCanvas.addEventListener("mousedown", startDraw);
@@ -448,6 +525,7 @@
 
   clearSignatureBtn.addEventListener("click", () => {
     ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    state.trimmedSignature = null;
     updatePlacementHint();
     updateDraggableSignature();
   });
@@ -476,14 +554,17 @@
       state.signatureImageData = e.target.result;
       signatureImagePreview.classList.remove("hidden");
       signatureImagePreview.innerHTML = "<img src=\"" + e.target.result + "\" alt=\"Signature preview\">";
-      updatePlacementHint();
-      updateDraggableSignature();
+      trimSignatureFromImage(e.target.result, function (trimmed) {
+        if (trimmed) applyTrimmedSignature(trimmed);
+        else { updatePlacementHint(); updateDraggableSignature(); }
+      });
     };
     reader.readAsDataURL(file);
   }
 
   // ----- Apply signature -----
   function getSignatureData() {
+    if (state.trimmedSignature && state.trimmedSignature.dataUrl) return state.trimmedSignature.dataUrl;
     if (state.signatureMode === "draw") {
       const ctx2 = signatureCanvas.getContext("2d");
       const imageData = ctx2.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
