@@ -56,12 +56,11 @@
   function getContentBbox(imageData, w, h) {
     var data = imageData.data;
     var left = w, top = h, right = 0, bottom = 0;
-    var whiteThreshold = 252;
     for (var y = 0; y < h; y++) {
       for (var x = 0; x < w; x++) {
         var i = (y * w + x) * 4;
         var r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-        var visible = a > 15 || (r < whiteThreshold || g < whiteThreshold || b < whiteThreshold);
+        var visible = (a > 40 && (r < 248 || g < 248 || b < 248));
         if (visible) {
           if (x < left) left = x;
           if (x > right) right = x;
@@ -256,8 +255,14 @@
     const canvasRect = pdfCanvas.getBoundingClientRect();
     const wrapRect = pdfPreviewWrap.getBoundingClientRect();
     var displayScale = state.displayScale || (canvasRect.width / page.width);
-    var w = parseFloat(sigWidth.value) || 200;
-    var h = parseFloat(sigHeight.value) || 80;
+    var w, h;
+    if (state.trimmedSignature) {
+      w = state.trimmedSignature.width;
+      h = state.trimmedSignature.height;
+    } else {
+      w = parseFloat(sigWidth.value) || 200;
+      h = parseFloat(sigHeight.value) || 80;
+    }
     placementMarker.style.left = (canvasRect.left - wrapRect.left + state.placement.x * displayScale) + "px";
     placementMarker.style.top = (canvasRect.top - wrapRect.top + state.placement.y * displayScale) + "px";
     placementMarker.style.width = (w * displayScale) + "px";
@@ -280,6 +285,21 @@
     }
     draggableSignatureImg.src = data;
     draggableSignatureImg.style.display = "";
+    if (state.trimmedSignature) {
+      var tw = state.trimmedSignature.width;
+      var th = state.trimmedSignature.height;
+      var maxSide = 200;
+      if (tw > maxSide || th > maxSide) {
+        var s = maxSide / Math.max(tw, th);
+        tw = Math.round(tw * s);
+        th = Math.round(th * s);
+      }
+      draggableSignature.style.width = tw + "px";
+      draggableSignature.style.height = th + "px";
+    } else {
+      draggableSignature.style.width = "";
+      draggableSignature.style.height = "";
+    }
     dragSignatureWrap.classList.remove("hidden");
   }
 
@@ -292,22 +312,30 @@
     e.preventDefault();
     e.stopPropagation();
     if (!getSignatureData() || !state.fileId) return;
-    const page = getPageSize();
+    var page = getPageSize();
     if (!page) return;
-    const canvasRect = pdfCanvas.getBoundingClientRect();
-    const dropX = e.clientX - canvasRect.left;
-    const dropY = e.clientY - canvasRect.top;
+    var canvasRect = pdfCanvas.getBoundingClientRect();
+    var dropX = e.clientX - canvasRect.left;
+    var dropY = e.clientY - canvasRect.top;
     if (dropX < 0 || dropY < 0 || dropX > canvasRect.width || dropY > canvasRect.height) return;
     var displayScale = state.displayScale || (canvasRect.width / page.width);
-    var pdfX = dropX / displayScale;
-    var pdfY = dropY / displayScale;
-    var w = parseFloat(sigWidth.value) || 200;
-    var h = parseFloat(sigHeight.value) || 80;
-    pdfX = Math.max(0, Math.min(page.width - w, pdfX));
-    pdfY = Math.max(0, Math.min(page.height - h, pdfY));
-    state.placement = { x: pdfX, y: pdfY };
-    updateMarkerPosition();
-    updatePlacementHint();
+    function placeWithTrim(trimmed) {
+      if (trimmed) applyTrimmedSignature(trimmed);
+      var w = state.trimmedSignature ? state.trimmedSignature.width : (parseFloat(sigWidth.value) || 200);
+      var h = state.trimmedSignature ? state.trimmedSignature.height : (parseFloat(sigHeight.value) || 80);
+      var pdfX = dropX / displayScale;
+      var pdfY = dropY / displayScale;
+      pdfX = Math.max(0, Math.min(page.width - w, pdfX));
+      pdfY = Math.max(0, Math.min(page.height - h, pdfY));
+      state.placement = { x: pdfX, y: pdfY };
+      updateMarkerPosition();
+      updatePlacementHint();
+    }
+    if (state.signatureMode === "draw") {
+      placeWithTrim(trimSignatureFromCanvas());
+    } else {
+      trimSignatureFromImage(getSignatureData(), placeWithTrim);
+    }
   }
 
   function allowDrop(e) {
@@ -358,6 +386,10 @@
         var newH = Math.max(30, Math.min(200, startH + dh));
         sigWidth.value = Math.round(newW);
         sigHeight.value = Math.round(newH);
+        if (state.trimmedSignature) {
+          state.trimmedSignature.width = newW;
+          state.trimmedSignature.height = newH;
+        }
         updateMarkerPosition();
       }
       function onResizeUp() {
