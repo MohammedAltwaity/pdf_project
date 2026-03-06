@@ -1,0 +1,9 @@
+# PDF Platform dependencies
+# Python: 3.10, 3.11, 3.12, or 3.13
+# Install: python -m venv venv && ./venv/bin/pip install -r requirements.txt
+
+Flask==3.0.0
+Werkzeug==3.0.1
+pypdf==4.0.1
+Pillow==10.1.0
+reportlab==4.0.7

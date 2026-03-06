@@ -1,0 +1,474 @@
+/* PDF Platform - Scalable layout for multiple tools */
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --surface-hover: #243044;
+  --border: #2d3a4d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-hover: #79b8ff;
+  --success: #3fb950;
+  --danger: #f85149;
+  --radius: 8px;
+  --sidebar-width: 320px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header - room for more nav items */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.logo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.main-nav {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nav-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.nav-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Main content: sidebar + workspace */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.tool-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tool-panel.hidden {
+  display: none;
+}
+
+.tool-panel h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.form-group .hidden {
+  display: none;
+}
+
+/* Upload zone */
+.upload-zone,
+.upload-signature-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover,
+.upload-signature-zone:hover,
+.upload-signature-zone.dragover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.upload-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.upload-zone p,
+.upload-signature-zone span {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.file-info {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Select */
+select {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Tabs */
+.signature-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--surface-hover);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.signature-panel {
+  margin-top: 0.5rem;
+}
+
+.signature-panel.hidden {
+  display: none;
+}
+
+/* Canvas */
+#signature-canvas {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: 160px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.size-row input {
+  width: 5rem;
+  padding: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  width: 100%;
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn.secondary {
+  background: var(--surface-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn.secondary:hover {
+  background: var(--border);
+}
+
+.signature-preview {
+  margin-top: 0.5rem;
+}
+
+.signature-preview img {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.muted.small {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Workspace */
+.workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg);
+  overflow: auto;
+}
+
+.workspace-placeholder {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.workspace-placeholder.hidden,
+.pdf-preview.hidden {
+  display: none;
+}
+
+.pdf-preview {
+  width: 100%;
+  max-width: 900px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pdf-page-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  flex-shrink: 0;
+}
+
+.btn-page {
+  padding: 0.4rem 0.75rem;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.btn-page:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pdf-page-info {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  min-width: 6rem;
+  text-align: center;
+}
+
+.pdf-preview-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 500px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #525659;
+}
+
+#pdf-canvas {
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+.placement-marker {
+  position: absolute;
+  border: 2px solid var(--accent);
+  background: #fff;
+  border-radius: 4px;
+  box-sizing: border-box;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.placement-marker.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+.placement-marker img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.placement-resize-handle {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border: 2px solid #fff;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  z-index: 1;
+}
+
+.drag-signature-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.drag-signature-wrap.hidden {
+  display: none;
+}
+
+.drag-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.draggable-signature {
+  cursor: grab;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius);
+  padding: 4px;
+  background: #fff;
+  max-width: 180px;
+  max-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.draggable-signature:active {
+  cursor: grabbing;
+}
+
+.draggable-signature img {
+  max-width: 160px;
+  max-height: 70px;
+  display: block;
+  pointer-events: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}

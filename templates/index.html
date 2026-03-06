@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Platform</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1 class="logo">PDF Platform</h1>
+      <nav class="main-nav" role="navigation" aria-label="Main tools">
+        <button type="button" class="nav-btn active" data-tool="sign" aria-pressed="true">Sign PDF</button>
+        <button type="button" class="nav-btn" data-tool="compress" disabled aria-label="Coming soon">Compress</button>
+        <button type="button" class="nav-btn" data-tool="convert" disabled aria-label="Coming soon">Convert</button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <aside class="sidebar">
+        <section class="tool-panel" id="panel-sign">
+          <h2>Sign PDF</h2>
+          <div class="upload-zone" id="upload-zone" role="button" tabindex="0">
+            <span class="upload-icon" aria-hidden="true">📄</span>
+            <p>Drop PDF here or click to upload</p>
+            <input type="file" id="pdf-input" accept=".pdf" hidden>
+          </div>
+          <div class="form-group hidden" id="after-upload">
+            <p class="file-info" id="file-info"></p>
+            <label>Page to sign</label>
+            <select id="page-select"></select>
+            <label>Signature</label>
+            <div class="signature-tabs">
+              <button type="button" class="tab-btn active" data-mode="draw">Draw</button>
+              <button type="button" class="tab-btn" data-mode="upload">Upload image</button>
+            </div>
+            <div class="signature-panel" id="panel-draw">
+              <canvas id="signature-canvas" width="400" height="160" aria-label="Draw your signature"></canvas>
+              <button type="button" class="btn secondary" id="clear-signature">Clear</button>
+            </div>
+            <div class="signature-panel hidden" id="panel-upload">
+              <div class="upload-signature-zone" id="upload-signature-zone" role="button" tabindex="0">
+                <span>Drop signature image or click</span>
+                <input type="file" id="signature-image-input" accept="image/*" hidden>
+              </div>
+              <div class="signature-preview hidden" id="signature-image-preview"></div>
+            </div>
+            <label>Size</label>
+            <div class="size-row">
+              <input type="number" id="sig-width" value="200" min="50" max="500" step="10">
+              <span>×</span>
+              <input type="number" id="sig-height" value="80" min="30" max="200" step="5">
+            </div>
+            <button type="button" class="btn primary" id="apply-signature">Apply signature &amp; download</button>
+          </div>
+        </section>
+        <section class="tool-panel hidden" id="panel-compress">
+          <h2>Compress PDF</h2>
+          <p class="muted">Coming soon.</p>
+        </section>
+        <section class="tool-panel hidden" id="panel-convert">
+          <h2>Convert</h2>
+          <p class="muted">Coming soon.</p>
+        </section>
+      </aside>
+      <div class="workspace">
+        <div class="workspace-placeholder" id="workspace-placeholder">
+          <p>Upload a PDF to get started</p>
+        </div>
+        <div class="pdf-preview hidden" id="pdf-preview">
+          <div class="pdf-page-bar" id="pdf-page-bar">
+            <button type="button" class="btn-page" id="pdf-prev" aria-label="Previous page">‹ Prev</button>
+            <span class="pdf-page-info" id="pdf-page-info">Page 1 of 1</span>
+            <button type="button" class="btn-page" id="pdf-next" aria-label="Next page">Next ›</button>
+          </div>
+          <div class="pdf-preview-wrap" id="pdf-preview-wrap">
+            <canvas id="pdf-canvas" aria-label="PDF page"></canvas>
+            <div class="placement-marker hidden" id="placement-marker">
+              <img id="placement-marker-img" alt="" />
+              <span class="placement-resize-handle" id="placement-resize-handle" title="Drag to resize"></span>
+            </div>
+          </div>
+          <p class="muted small" id="placement-hint">Create or upload a signature, then drag it onto the PDF.</p>
+          <div class="drag-signature-wrap hidden" id="drag-signature-wrap">
+            <span class="drag-label">Drag to PDF →</span>
+            <div class="draggable-signature" id="draggable-signature" draggable="true" title="Drag onto the PDF to place">
+              <img id="draggable-signature-img" alt="Your signature" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
