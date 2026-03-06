@@ -58,6 +58,24 @@
   const mergeResultPageInfo = document.getElementById("merge-result-page-info");
   const mergeResultDownload = document.getElementById("merge-result-download");
 
+  const reorderUploadZone = document.getElementById("reorder-upload-zone");
+  const reorderPdfInput = document.getElementById("reorder-pdf-input");
+  const reorderAfter = document.getElementById("reorder-after");
+  const reorderFileInfo = document.getElementById("reorder-file-info");
+  const reorderPageList = document.getElementById("reorder-page-list");
+  const reorderApplyBtn = document.getElementById("reorder-apply-btn");
+  const reorderResultPreview = document.getElementById("reorder-result-preview");
+  const reorderResultCanvas = document.getElementById("reorder-result-canvas");
+  const reorderResultPrev = document.getElementById("reorder-result-prev");
+  const reorderResultNext = document.getElementById("reorder-result-next");
+  const reorderResultPageInfo = document.getElementById("reorder-result-page-info");
+  const reorderResultDownload = document.getElementById("reorder-result-download");
+  const reorderLivePreview = document.getElementById("reorder-live-preview");
+  const reorderLiveCanvas = document.getElementById("reorder-live-canvas");
+  const reorderLivePrev = document.getElementById("reorder-live-prev");
+  const reorderLiveNext = document.getElementById("reorder-live-next");
+  const reorderLivePageInfo = document.getElementById("reorder-live-page-info");
+
   let state = {
     fileId: null,
     numPages: 0,
@@ -76,6 +94,16 @@
     mergedPdfDoc: null,
     mergedPdfNumPages: 0,
     mergedPdfPageIndex: 0,
+    reorderFileId: null,
+    reorderNumPages: 0,
+    reorderOrder: [],
+    reorderResultUrl: null,
+    reorderResultBlob: null,
+    reorderResultDoc: null,
+    reorderResultNumPages: 0,
+    reorderResultPageIndex: 0,
+    reorderPdfDoc: null,
+    reorderPreviewPageIndex: 0,
   };
 
   function getContentBbox(imageData, w, h) {
@@ -537,6 +565,9 @@
     if (workspacePlaceholder) workspacePlaceholder.classList.add("hidden");
     if (pdfPreview) pdfPreview.classList.add("hidden");
     if (mergePreview) mergePreview.classList.add("hidden");
+    if (mergeResultPreview) mergeResultPreview.classList.add("hidden");
+    if (reorderResultPreview) reorderResultPreview.classList.add("hidden");
+    if (reorderLivePreview) reorderLivePreview.classList.add("hidden");
     if (tool === "merge") {
       if (state.mergedPdfDoc && mergeResultPreview) {
         mergeResultPreview.classList.remove("hidden");
@@ -546,6 +577,18 @@
         if (mergeResultPreview) mergeResultPreview.classList.add("hidden");
         if (mergePreview) mergePreview.classList.remove("hidden");
         updateMergePreview();
+      }
+    } else if (tool === "reorder") {
+      if (state.reorderResultDoc && reorderResultPreview) {
+        reorderResultPreview.classList.remove("hidden");
+        if (reorderLivePreview) reorderLivePreview.classList.add("hidden");
+        renderReorderResultPage(state.reorderResultPageIndex);
+      } else if (state.reorderPdfDoc && reorderLivePreview) {
+        reorderLivePreview.classList.remove("hidden");
+        if (reorderResultPreview) reorderResultPreview.classList.add("hidden");
+        renderReorderLivePreviewPage(state.reorderPreviewPageIndex);
+      } else {
+        if (workspacePlaceholder) workspacePlaceholder.classList.remove("hidden");
       }
     } else if (tool === "sign") {
       if (state.fileId) {
@@ -648,15 +691,21 @@
     if (mergeResultNext) mergeResultNext.disabled = idx >= state.mergedPdfNumPages - 1;
     state.mergedPdfDoc.getPage(idx + 1).then(function (page) {
       var wrap = mergeResultCanvas.parentElement;
-      var wrapW = wrap ? wrap.clientWidth : 600;
-      var wrapH = wrap ? wrap.clientHeight : 500;
-      var baseScale = Math.min(wrapW / page.getViewport({ scale: 1 }).width, wrapH / page.getViewport({ scale: 1 }).height);
+      if (!wrap) return;
+      var wrapW = wrap.clientWidth || 600;
+      var wrapH = wrap.clientHeight || 500;
+      var pageViewport1 = page.getViewport({ scale: 1 });
+      var baseScale = Math.min(wrapW / pageViewport1.width, wrapH / pageViewport1.height);
       var pixelRatio = Math.max(1.5, window.devicePixelRatio || 1);
       var renderScale = baseScale * pixelRatio;
       var viewport = page.getViewport({ scale: renderScale });
       mergeResultCanvas.width = viewport.width;
       mergeResultCanvas.height = viewport.height;
+      mergeResultCanvas.style.width = (viewport.width / pixelRatio) + "px";
+      mergeResultCanvas.style.height = (viewport.height / pixelRatio) + "px";
+      mergeResultCanvas.style.maxWidth = "100%";
       var ctx = mergeResultCanvas.getContext("2d");
+      ctx.clearRect(0, 0, mergeResultCanvas.width, mergeResultCanvas.height);
       return page.render({ canvasContext: ctx, viewport: viewport }).promise;
     }).catch(function (err) { console.error("Merge preview render failed", err); });
   }
@@ -837,6 +886,331 @@
       var a = document.createElement("a");
       a.href = URL.createObjectURL(state.mergedPdfBlob);
       a.download = "merged.pdf";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      }, 100);
+    });
+  }
+
+  // ----- Reorder PDF pages -----
+  function renderReorderPageList() {
+    if (!reorderPageList) return;
+    reorderPageList.innerHTML = "";
+    state.reorderOrder.forEach(function (pageIndex, position) {
+      var li = document.createElement("li");
+      li.draggable = true;
+      li.setAttribute("data-position", String(position));
+      li.innerHTML = "<span class=\"reorder-page-drag\" aria-hidden=\"true\">⋮⋮</span>" +
+        "<span class=\"reorder-page-num\">Page " + (pageIndex + 1) + "</span>" +
+        "<div class=\"reorder-page-move\">" +
+        "<button type=\"button\" class=\"reorder-up\" title=\"Move up\">↑</button>" +
+        "<button type=\"button\" class=\"reorder-down\" title=\"Move down\">↓</button>" +
+        "</div>";
+      reorderPageList.appendChild(li);
+    });
+    reorderPageList.querySelectorAll(".reorder-up").forEach(function (btn, idx) {
+      btn.addEventListener("click", function () {
+        if (idx <= 0) return;
+        var o = state.reorderOrder.slice();
+        o[idx] = o[idx - 1];
+        o[idx - 1] = state.reorderOrder[idx];
+        state.reorderOrder = o;
+        renderReorderPageList();
+        renderReorderLivePreviewPage(state.reorderPreviewPageIndex);
+      });
+    });
+    reorderPageList.querySelectorAll(".reorder-down").forEach(function (btn, idx) {
+      btn.addEventListener("click", function () {
+        if (idx >= state.reorderOrder.length - 1) return;
+        var o = state.reorderOrder.slice();
+        o[idx] = o[idx + 1];
+        o[idx + 1] = state.reorderOrder[idx];
+        state.reorderOrder = o;
+        renderReorderPageList();
+        renderReorderLivePreviewPage(state.reorderPreviewPageIndex);
+      });
+    });
+    renderReorderLivePreviewPage(state.reorderPreviewPageIndex);
+    var items = reorderPageList.querySelectorAll("li");
+    items.forEach(function (li) {
+      li.addEventListener("dragstart", function (e) {
+        e.dataTransfer.setData("text/plain", li.getAttribute("data-position"));
+        e.dataTransfer.effectAllowed = "move";
+        li.classList.add("dragging");
+      });
+      li.addEventListener("dragend", function () {
+        li.classList.remove("dragging");
+      });
+    });
+  }
+
+  (function initReorderDragDrop() {
+    if (!reorderPageList) return;
+    reorderPageList.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      var li = e.target.closest("li");
+      if (!li) return;
+      var toPos = parseInt(li.getAttribute("data-position"), 10);
+      if (isNaN(toPos)) return;
+      var fromStr = e.dataTransfer.getData("text/plain");
+      if (fromStr === "") return;
+      var from = parseInt(fromStr, 10);
+      if (isNaN(from) || from === toPos) return;
+      e.dataTransfer.dropEffect = "move";
+    });
+    reorderPageList.addEventListener("drop", function (e) {
+      e.preventDefault();
+      var li = e.target.closest("li");
+      if (!li) return;
+      var toPos = parseInt(li.getAttribute("data-position"), 10);
+      if (isNaN(toPos)) return;
+      var fromStr = e.dataTransfer.getData("text/plain");
+      if (fromStr === "") return;
+      var from = parseInt(fromStr, 10);
+      if (isNaN(from) || from === toPos) return;
+      var o = state.reorderOrder.slice();
+      var v = o[from];
+      o.splice(from, 1);
+      var insertAt = toPos > from ? toPos - 1 : toPos;
+      o.splice(insertAt, 0, v);
+      state.reorderOrder = o;
+      renderReorderPageList();
+      renderReorderLivePreviewPage(state.reorderPreviewPageIndex);
+    });
+  })();
+
+  if (reorderUploadZone) {
+    reorderUploadZone.addEventListener("click", function () {
+      if (reorderPdfInput) reorderPdfInput.click();
+    });
+    reorderUploadZone.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      reorderUploadZone.classList.add("dragover");
+    });
+    reorderUploadZone.addEventListener("dragleave", function () {
+      reorderUploadZone.classList.remove("dragover");
+    });
+    reorderUploadZone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      reorderUploadZone.classList.remove("dragover");
+      var file = e.dataTransfer.files[0];
+      if (file && file.type === "application/pdf") handleReorderPdfSelect(file);
+    });
+  }
+  if (reorderPdfInput) {
+    reorderPdfInput.addEventListener("change", function () {
+      var file = reorderPdfInput.files[0];
+      if (file) handleReorderPdfSelect(file);
+      reorderPdfInput.value = "";
+    });
+  }
+
+  function clearReorderResult() {
+    if (state.reorderResultUrl) {
+      URL.revokeObjectURL(state.reorderResultUrl);
+      state.reorderResultUrl = null;
+    }
+    state.reorderResultBlob = null;
+    state.reorderResultDoc = null;
+    state.reorderResultNumPages = 0;
+    state.reorderResultPageIndex = 0;
+    if (reorderResultPreview) reorderResultPreview.classList.add("hidden");
+  }
+
+  function renderReorderLivePreviewPage(idx) {
+    if (!state.reorderPdfDoc || !reorderLiveCanvas || typeof pdfjsLib === "undefined") return;
+    if (idx < 0 || idx >= state.reorderOrder.length) return;
+    state.reorderPreviewPageIndex = idx;
+    var numPages = state.reorderOrder.length;
+    if (reorderLivePageInfo) reorderLivePageInfo.textContent = "Page " + (idx + 1) + " of " + numPages;
+    if (reorderLivePrev) reorderLivePrev.disabled = idx <= 0;
+    if (reorderLiveNext) reorderLiveNext.disabled = idx >= numPages - 1;
+    var originalPageNum = state.reorderOrder[idx] + 1;
+    state.reorderPdfDoc.getPage(originalPageNum).then(function (page) {
+      var wrap = reorderLiveCanvas.parentElement;
+      if (!wrap) return;
+      var wrapW = wrap.clientWidth || 600;
+      var wrapH = wrap.clientHeight || 500;
+      var pageViewport1 = page.getViewport({ scale: 1 });
+      var baseScale = Math.min(wrapW / pageViewport1.width, wrapH / pageViewport1.height);
+      var pixelRatio = Math.max(1.5, window.devicePixelRatio || 1);
+      var renderScale = baseScale * pixelRatio;
+      var viewport = page.getViewport({ scale: renderScale });
+      reorderLiveCanvas.width = viewport.width;
+      reorderLiveCanvas.height = viewport.height;
+      reorderLiveCanvas.style.width = (viewport.width / pixelRatio) + "px";
+      reorderLiveCanvas.style.height = (viewport.height / pixelRatio) + "px";
+      reorderLiveCanvas.style.maxWidth = "100%";
+      var ctx = reorderLiveCanvas.getContext("2d");
+      ctx.clearRect(0, 0, reorderLiveCanvas.width, reorderLiveCanvas.height);
+      return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    }).catch(function (err) { console.error("Reorder live preview render failed", err); });
+  }
+
+  function loadReorderPdfForPreview() {
+    if (!state.reorderFileId || typeof pdfjsLib === "undefined") return;
+    var url = "/uploads/" + state.reorderFileId + ".pdf";
+    state.reorderPdfDoc = null;
+    pdfjsLib.getDocument(url).promise.then(function (pdf) {
+      state.reorderPdfDoc = pdf;
+      state.reorderPreviewPageIndex = 0;
+      if (workspacePlaceholder) workspacePlaceholder.classList.add("hidden");
+      if (reorderResultPreview) reorderResultPreview.classList.add("hidden");
+      if (reorderLivePreview) reorderLivePreview.classList.remove("hidden");
+      renderReorderLivePreviewPage(0);
+    }).catch(function (err) {
+      console.error("Failed to load PDF for reorder preview", err);
+    });
+  }
+
+  function renderReorderResultPage(idx) {
+    if (!state.reorderResultDoc || !reorderResultCanvas || typeof pdfjsLib === "undefined") return;
+    state.reorderResultPageIndex = idx;
+    if (reorderResultPageInfo) reorderResultPageInfo.textContent = "Page " + (idx + 1) + " of " + state.reorderResultNumPages;
+    if (reorderResultPrev) reorderResultPrev.disabled = idx <= 0;
+    if (reorderResultNext) reorderResultNext.disabled = idx >= state.reorderResultNumPages - 1;
+    state.reorderResultDoc.getPage(idx + 1).then(function (page) {
+      var wrap = reorderResultCanvas.parentElement;
+      if (!wrap) return;
+      var wrapW = wrap.clientWidth || 600;
+      var wrapH = wrap.clientHeight || 500;
+      var pageViewport1 = page.getViewport({ scale: 1 });
+      var baseScale = Math.min(wrapW / pageViewport1.width, wrapH / pageViewport1.height);
+      var pixelRatio = Math.max(1.5, window.devicePixelRatio || 1);
+      var renderScale = baseScale * pixelRatio;
+      var viewport = page.getViewport({ scale: renderScale });
+      reorderResultCanvas.width = viewport.width;
+      reorderResultCanvas.height = viewport.height;
+      reorderResultCanvas.style.width = (viewport.width / pixelRatio) + "px";
+      reorderResultCanvas.style.height = (viewport.height / pixelRatio) + "px";
+      reorderResultCanvas.style.maxWidth = "100%";
+      var ctx = reorderResultCanvas.getContext("2d");
+      ctx.clearRect(0, 0, reorderResultCanvas.width, reorderResultCanvas.height);
+      return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    }).catch(function (err) { console.error("Reorder preview render failed", err); });
+  }
+
+  function showReorderResult(blob) {
+    if (state.reorderResultUrl) URL.revokeObjectURL(state.reorderResultUrl);
+    state.reorderResultBlob = blob;
+    state.reorderResultUrl = URL.createObjectURL(blob);
+    state.reorderResultDoc = null;
+    state.reorderResultNumPages = 0;
+    state.reorderResultPageIndex = 0;
+    if (workspacePlaceholder) workspacePlaceholder.classList.add("hidden");
+    if (reorderLivePreview) reorderLivePreview.classList.add("hidden");
+    if (reorderResultPreview) reorderResultPreview.classList.remove("hidden");
+    if (typeof pdfjsLib === "undefined") return;
+    pdfjsLib.getDocument(state.reorderResultUrl).promise.then(function (pdf) {
+      state.reorderResultDoc = pdf;
+      state.reorderResultNumPages = pdf.numPages;
+      renderReorderResultPage(0);
+    }).catch(function (err) {
+      console.error("Failed to load reordered PDF for preview", err);
+      if (reorderResultPageInfo) reorderResultPageInfo.textContent = "Preview unavailable";
+    });
+  }
+
+  function handleReorderPdfSelect(file) {
+    clearReorderResult();
+    var fd = new FormData();
+    fd.append("pdf", file);
+    fetch("/api/upload-pdf", { method: "POST", body: fd })
+      .then(function (r) {
+        return r.text().then(function (text) {
+          if (!r.ok) {
+            try {
+              var d = JSON.parse(text);
+              throw new Error(d.error || "Upload failed");
+            } catch (e) {
+              if (e instanceof SyntaxError) throw new Error(text || "Upload failed");
+              throw e;
+            }
+          }
+          return JSON.parse(text);
+        });
+      })
+      .then(function (data) {
+        state.reorderFileId = data.file_id;
+        state.reorderNumPages = data.num_pages;
+        state.reorderOrder = [];
+        for (var i = 0; i < data.num_pages; i++) state.reorderOrder.push(i);
+        if (reorderFileInfo) reorderFileInfo.textContent = data.num_pages + " page(s) — drag to reorder";
+        if (reorderAfter) reorderAfter.classList.remove("hidden");
+        renderReorderPageList();
+        loadReorderPdfForPreview();
+      })
+      .catch(function (err) {
+        alert(err.message || "Failed to upload PDF");
+      });
+  }
+
+  if (reorderApplyBtn) {
+    reorderApplyBtn.addEventListener("click", function () {
+      if (!state.reorderFileId || !state.reorderOrder.length) return;
+      reorderApplyBtn.disabled = true;
+      reorderApplyBtn.textContent = "Applying…";
+      var fd = new FormData();
+      fd.append("file_id", state.reorderFileId);
+      fd.append("order", JSON.stringify(state.reorderOrder));
+      fetch("/api/reorder-pdf", { method: "POST", body: fd })
+        .then(function (r) {
+          if (!r.ok) {
+            return r.text().then(function (text) {
+              var msg = "Reorder failed";
+              try {
+                var d = JSON.parse(text);
+                if (d && d.error) msg = d.error;
+              } catch (e) { if (text) msg = text.slice(0, 200); }
+              throw new Error(msg);
+            });
+          }
+          return r.blob();
+        })
+        .then(function (blob) {
+          showReorderResult(blob);
+        })
+        .catch(function (err) {
+          alert(err.message || "Failed to reorder PDF");
+        })
+        .finally(function () {
+          reorderApplyBtn.disabled = false;
+          reorderApplyBtn.textContent = "Apply order";
+        });
+    });
+  }
+  if (reorderLivePrev) {
+    reorderLivePrev.addEventListener("click", function () {
+      if (state.reorderPreviewPageIndex > 0) renderReorderLivePreviewPage(state.reorderPreviewPageIndex - 1);
+    });
+  }
+  if (reorderLiveNext) {
+    reorderLiveNext.addEventListener("click", function () {
+      if (state.reorderPreviewPageIndex < state.reorderOrder.length - 1) renderReorderLivePreviewPage(state.reorderPreviewPageIndex + 1);
+    });
+  }
+  if (reorderResultPrev) {
+    reorderResultPrev.addEventListener("click", function () {
+      if (state.reorderResultPageIndex > 0) renderReorderResultPage(state.reorderResultPageIndex - 1);
+    });
+  }
+  if (reorderResultNext) {
+    reorderResultNext.addEventListener("click", function () {
+      if (state.reorderResultPageIndex < state.reorderResultNumPages - 1) renderReorderResultPage(state.reorderResultPageIndex + 1);
+    });
+  }
+  if (reorderResultDownload) {
+    reorderResultDownload.addEventListener("click", function () {
+      if (!state.reorderResultBlob) return;
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(state.reorderResultBlob);
+      a.download = "reordered.pdf";
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();

@@ -48,6 +48,12 @@
           </span>
           <span class="tool-card-label">Merge PDF</span>
         </a>
+        <a href="#" class="tool-card" data-tool="reorder" role="listitem">
+          <span class="tool-card-icon tool-card-icon-reorder" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 12h32M8 24h32M8 36h32" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 8l-6 4 6 4M14 32l-6 4 6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="tool-card-label">Reorder pages</span>
+        </a>
         <div class="tool-card tool-card-disabled" aria-disabled="true">
           <span class="tool-card-icon tool-card-icon-split" aria-hidden="true">
             <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 10v28h12V10H8zM28 10v28h12V10H28z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
@@ -140,6 +146,21 @@
           <ul class="merge-file-list" id="merge-file-list" aria-label="PDFs to merge (order)"></ul>
           <button type="button" class="btn primary" id="merge-download-btn" disabled>Merge &amp; download</button>
         </section>
+        <section class="tool-panel hidden" id="panel-reorder">
+          <h2>Reorder PDF pages</h2>
+          <p class="muted small">Upload a PDF and drag pages to change their order.</p>
+          <div class="reorder-upload-zone" id="reorder-upload-zone" role="button" tabindex="0">
+            <span class="upload-icon" aria-hidden="true">📄</span>
+            <p>Drop PDF here or click to upload</p>
+            <input type="file" id="reorder-pdf-input" accept=".pdf" hidden>
+          </div>
+          <div class="reorder-after hidden" id="reorder-after">
+            <p class="file-info" id="reorder-file-info"></p>
+            <label>Page order (drag to reorder)</label>
+            <ul class="reorder-page-list" id="reorder-page-list" aria-label="Page order"></ul>
+            <button type="button" class="btn primary" id="reorder-apply-btn">Apply order</button>
+          </div>
+        </section>
         <section class="tool-panel hidden" id="panel-compress">
           <h2>Compress PDF</h2>
           <p class="muted">Coming soon.</p>
@@ -170,6 +191,30 @@
           </div>
           <button type="button" class="btn primary" id="merge-result-download">Download merged.pdf</button>
         </div>
+        <div class="merge-result-preview reorder-live-preview hidden" id="reorder-live-preview">
+          <h3 class="merge-preview-title">Preview of new order</h3>
+          <p class="muted small">Changes when you reorder pages in the sidebar.</p>
+          <div class="pdf-page-bar merge-result-page-bar">
+            <button type="button" class="btn-page" id="reorder-live-prev" aria-label="Previous page">‹ Prev</button>
+            <span class="pdf-page-info" id="reorder-live-page-info">Page 1 of 1</span>
+            <button type="button" class="btn-page" id="reorder-live-next" aria-label="Next page">Next ›</button>
+          </div>
+          <div class="merge-result-wrap">
+            <canvas id="reorder-live-canvas" aria-label="Preview page"></canvas>
+          </div>
+        </div>
+        <div class="merge-result-preview reorder-result-preview hidden" id="reorder-result-preview">
+          <h3 class="merge-preview-title">Reordered PDF — ready to download</h3>
+          <div class="pdf-page-bar merge-result-page-bar">
+            <button type="button" class="btn-page" id="reorder-result-prev" aria-label="Previous page">‹ Prev</button>
+            <span class="pdf-page-info" id="reorder-result-page-info">Page 1 of 1</span>
+            <button type="button" class="btn-page" id="reorder-result-next" aria-label="Next page">Next ›</button>
+          </div>
+          <div class="merge-result-wrap">
+            <canvas id="reorder-result-canvas" aria-label="Reordered PDF page"></canvas>
+          </div>
+          <button type="button" class="btn primary" id="reorder-result-download">Download reordered.pdf</button>
+        </div>
         <div class="pdf-preview hidden" id="pdf-preview">
           <div class="pdf-page-bar" id="pdf-page-bar">
             <button type="button" class="btn-page" id="pdf-prev" aria-label="Previous page">‹ Prev</button>
@@ -198,6 +243,7 @@
           <a href="#" class="footer-link" data-tool="sign">Sign PDF</a>
           <a href="#" class="footer-link">Compress</a>
           <a href="#" class="footer-link" data-tool="merge">Merge</a>
+          <a href="#" class="footer-link" data-tool="reorder">Reorder</a>
           <a href="#" class="footer-link">Convert</a>
         </nav>
         <p class="footer-copy">&copy; PDF Platform. All processing is done in your browser and on our server; we don’t store your files.</p>

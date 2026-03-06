@@ -208,5 +208,41 @@ def merge_pdf():
     return send_file(out, mimetype="application/pdf", as_attachment=True, download_name="merged.pdf")
 
 
+@app.route("/api/reorder-pdf", methods=["POST"])
+def reorder_pdf():
+    """Reorder PDF pages. Expects file_id (uploaded PDF) and order (JSON array of 0-based page indices)."""
+    import json as json_module
+    file_id = request.form.get("file_id")
+    if not file_id:
+        return jsonify({"error": "No file_id provided"}), 400
+    order_str = request.form.get("order")
+    if not order_str:
+        return jsonify({"error": "No order provided"}), 400
+    try:
+        order = json_module.loads(order_str)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid order: must be a JSON array of page indices"}), 400
+    if not isinstance(order, list) or not all(isinstance(i, int) for i in order):
+        return jsonify({"error": "Order must be an array of integers"}), 400
+
+    pdf_path = UPLOAD_DIR / f"{file_id}.pdf"
+    if not pdf_path.exists():
+        return jsonify({"error": "PDF not found"}), 404
+
+    reader = PdfReader(pdf_path)
+    num_pages = len(reader.pages)
+    if set(order) != set(range(num_pages)):
+        return jsonify({"error": f"Order must contain each index from 0 to {num_pages - 1} exactly once"}), 400
+
+    writer = PdfWriter()
+    for i in order:
+        writer.add_page(reader.pages[i])
+
+    out = io.BytesIO()
+    writer.write(out)
+    out.seek(0)
+    return send_file(out, mimetype="application/pdf", as_attachment=True, download_name="reordered.pdf")
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
